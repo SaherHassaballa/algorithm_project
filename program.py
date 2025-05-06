@@ -1,76 +1,60 @@
+# app.py
 import streamlit as st
 from student_class import Student
-import pyodbc
-from student_sorted import merge_sort
-import matplotlib.pyplot as plt
-import seaborn as sns
-import plotly.express as px
 import pandas as pd
+import plotly.express as px
 
-conn = pyodbc.connect(
-    'DRIVER={ODBC Driver 17 for SQL Server};'
-    'SERVER=localhost;'
-    'DATABASE=student;'
-    'Trusted_Connection=yes;'
-)
+st.set_page_config(page_title="Student Dashboard", layout="wide")
+st.title("🎓 Student Dashboard")
 
-cursor = conn.cursor()
+# Inputs
+name = st.text_input("Enter your name:")
+grade = st.text_input("Enter your grade:")
+performance = st.text_input("Enter your performance (e.g., A+):")
+student = Student(name, grade, performance)
 
-
-name = st.text_input('Enter your name:', key='name_input')
-grade = st.slider('Enter your grade:', key='grade_input')
-performance = st.text_input('Enter your performance:', key='performance_input')
-
-
-if st.button('submit'):
-    cursor.execute('''INSERT INTO student_table (name, grade, perf) VALUES (?, ?, ?)''', (name, grade, performance))
-    conn.commit()
-    st.success("Data inserted successfully")
-    st.write(f"Name: {name}, Grade: {grade}, Performance: {performance}")
-
-if st.button('sort grades'):
-    list_grade=[]
-    cursor.execute('''select grade from student_table ''')
-    grades = cursor.fetchall()
-    for i in grades:
-        list_grade.append(i[0])
-    sorted_grades =merge_sort(list_grade)
-    st.write(f'{sorted_grades}')
-    if grades:
-        # fig = px.histogram(sorted_grades , nbins=30, title="Histogram with Plotly", range_x=[0, 100])
-        # st.plotly_chart(fig)
-        # fig = plt.figure()
-        # sns.histplot(sorted_grades , bins=10)
-        # st.pyplot(fig)
-        fig, ax = plt.subplots(figsize=(10, 5))
-        # sns.set_style("whitegrid")
-        # sns.histplot(sorted_grades, bins=10, kde=True, color="#36a2eb", edgecolor="black", ax=ax)
-        
-        # ax.set_title("Histogram of Grades", fontsize=16, fontweight='bold')
-        # ax.set_xlabel("Grades", fontsize=14)
-        # ax.set_ylabel("Frequency", fontsize=14)
-        # ax.tick_params(axis='both', labelsize=12)
-
-        # st.pyplot(fig)
-        df = pd.DataFrame(sorted_grades)
-        st.write(f'''# the mean , median , mode of class grade {round(df.mean()[0] ,2)} , {round(df.median()[0] ,2)} ,  {round(df.mode()[0][0],2)}''')
-        fig = px.histogram(sorted_grades, nbins=10, title="Histogram of Grades", 
-                        labels={'value': 'Grade'}, color_discrete_sequence=['#00cc99'])
-        
-        # إضافة بعض التحسينات في الشكل
-        fig.update_layout(
-            title="Histogram of Student Grades",
-            xaxis_title="Grades",
-            yaxis_title="Frequency",
-            template="plotly_dark",  # تغيير القالب لواحد تفاعلي
-            bargap=0.1,  # المسافة بين الأعمدة
-            hovermode="closest",  # جعل التفاعل مع أقرب نقطة
-            xaxis=dict(tickmode='linear', tick0=0, dtick=10)  # تخصيص التواريخ
-        )
-        
-        st.plotly_chart(fig)
+# Submit
+if st.button("Submit"):
+    if student.insert_to_db():
+        st.success("Data inserted successfully")
     else:
-        st.warning("there is no grades")
+        st.error("Please fill all fields correctly")
 
+# Display Sorted Table and Histogram with Statistics
+if st.button("Display Data"):
+    data = Student.sort_students()
+    df = pd.DataFrame(data)
+    st.subheader("Students (Sorted by Performance & Grade)")
+    st.dataframe(df, use_container_width=True)
 
+    # Calculate statistics
+    grades = [s['Grade'] for s in Student.get_all_students()]
+    mean_val = Student.calculate_mean(grades)
+    median_val = Student.calculate_median(grades)
+    mode_val = Student.calculate_mode(grades)
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Mean Grade", f"{mean_val:.2f}" if mean_val is not None else "—")
+    col2.metric("Median Grade", f"{median_val:.2f}" if median_val is not None else "—")
+    col3.metric("Mode Grade", f"{mode_val}" if mode_val is not None else "—")
 
+    # Histogram of all grades
+    st.subheader("Grade Distribution Histogram")
+    hist_df = pd.DataFrame(grades, columns=["Grade"])
+    fig = px.histogram(hist_df, x="Grade", nbins=10,
+                        title="Histogram of Student Grades")
+    fig.update_layout(xaxis_title="Grade", yaxis_title="Count",
+                        template="plotly_dark", bargap=0.1)
+    st.plotly_chart(fig, use_container_width=True)
+
+# Individual Sort Buttons
+st.divider()
+col1, col2, col3 = st.columns(3)
+with col1:
+    if st.button("Names Only"):
+        st.table(pd.DataFrame(Student.get_sorted_names(), columns=["Name"]))
+with col2:
+    if st.button("Grades Only"):
+        st.table(pd.DataFrame(Student.get_sorted_grades(), columns=["Grade"]))
+with col3:
+    if st.button("Performance Only"):
+        st.table(pd.DataFrame(Student.get_sorted_performance(), columns=["Performance"]))
