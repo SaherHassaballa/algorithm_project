@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Student Dashboard - Description and Report
 
 ## Overview
@@ -88,7 +87,7 @@ The **Student Dashboard** is a web application built using the Streamlit framewo
 ## Conclusion
 The "Student Dashboard" is a well-designed and feature-rich application for managing and visualizing student data. It effectively combines functionality, aesthetics, and interactivity, making it a valuable tool for educators and administrators. With minor enhancements, it can become even more robust and user-friendly.
 # algorithm_project
-=======
+
 # algorithm_project
 sorting data for the students by quick , merge , radix sort
->>>>>>> 7bee43beb03b4f2de1c459c1160b2039f29a1a3e
+
