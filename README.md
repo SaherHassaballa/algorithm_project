@@ -85,4 +85,4 @@ These algorithms help demonstrate how sorting changes the dataset and allows use
 ## 🚀 How to Run the App
 
 ```bash
-streamlit run student_dashboard.py
+streamlit run program.py
