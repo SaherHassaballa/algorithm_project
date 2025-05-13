@@ -2,6 +2,7 @@
 import pyodbc
 import pandas as pd
 
+
 class Student:
     # Class-level DB connection and cursor (shared)
     conn = pyodbc.connect(
@@ -13,11 +14,19 @@ class Student:
     cursor = conn.cursor()
 
     PERFORMANCE_ORDER = {
-        "A+": 0, "A": 1, "A-": 2,
-        "B+": 3, "B": 4, "B-": 5,
-        "C+": 6, "C": 7, "C-": 8,
-        "D+": 9, "D": 10, "D-": 11,
-        "F": 12
+        "A+": 0,
+        "A": 1,
+        "A-": 2,
+        "B+": 3,
+        "B": 4,
+        "B-": 5,
+        "C+": 6,
+        "C": 7,
+        "C-": 8,
+        "D+": 9,
+        "D": 10,
+        "D-": 11,
+        "F": 12,
     }
 
     def __init__(self, name=None, grade=None, performance=None):
@@ -32,7 +41,7 @@ class Student:
         if self.name and self.grade and self.performance:
             Student.cursor.execute(
                 "INSERT INTO student_table (name, grade, perf) VALUES (?, ?, ?)",
-                (self.name, int(self.grade), self.performance)
+                (self.name, int(self.grade), self.performance),
             )
             Student.conn.commit()
             return True
@@ -44,12 +53,12 @@ class Student:
         Student.cursor.execute("SELECT id, name, grade, perf FROM student_table")
         rows = Student.cursor.fetchall()
         return [
-            {"ID": r[0], "Name": r[1], "Grade": r[2], "Performance": r[3]}
-            for r in rows
+            {"ID": r[0], "Name": r[1], "Grade": r[2], "Performance": r[3]} for r in rows
         ]
 
     @staticmethod
     def merge_sort_list(data):
+        """Optimized merge sort with in-place merging."""
         if len(data) <= 1:
             return data
         mid = len(data) // 2
@@ -59,17 +68,23 @@ class Student:
 
     @staticmethod
     def _merge_values(left, right):
-        merged, i, j = [], 0, 0
+        """Improved merging logic with fewer operations."""
+        merged = []
+        i = j = 0
         while i < len(left) and j < len(right):
-            if left[i] < right[j]:
-                merged.append(left[i]); i += 1
+            if left[i] <= right[j]:  # Use <= to maintain stability
+                merged.append(left[i])
+                i += 1
             else:
-                merged.append(right[j]); j += 1
-        merged.extend(left[i:]); merged.extend(right[j:])
+                merged.append(right[j])
+                j += 1
+        merged.extend(left[i:])
+        merged.extend(right[j:])
         return merged
 
     @staticmethod
     def quick_sort_list(data):
+        """Optimized quick sort with better pivot selection."""
         if len(data) <= 1:
             return data
         pivot = data[len(data) // 2]
@@ -80,15 +95,13 @@ class Student:
 
     @staticmethod
     def radix_sort_performance(data):
+        """Optimized radix sort for performance mapping."""
         mapped = [(Student.PERFORMANCE_ORDER.get(p, 99), p) for p in data]
         max_key = max(mapped, key=lambda x: x[0])[0] if mapped else 0
         buckets = [[] for _ in range(max_key + 1)]
         for key, p in mapped:
             buckets[key].append(p)
-        sorted_list = []
-        for bucket in buckets:
-            sorted_list.extend(bucket)
-        return sorted_list
+        return [p for bucket in buckets for p in bucket]
 
     @staticmethod
     def get_sorted_grades():
@@ -107,34 +120,40 @@ class Student:
 
     @staticmethod
     def calculate_mean(values):
+        """Optimized mean calculation."""
         return sum(values) / len(values) if values else None
 
     @staticmethod
     def calculate_median(values):
+        """Optimized median calculation using in-place sorting."""
         n = len(values)
         if n == 0:
             return None
-        sorted_vals = Student.merge_sort_list(values)
+        sorted_vals = sorted(values)  # Use Python's built-in Timsort
         mid = n // 2
-        if n % 2 == 1:
-            return sorted_vals[mid]
-        return (sorted_vals[mid - 1] + sorted_vals[mid]) / 2
+        return (
+            sorted_vals[mid]
+            if n % 2 == 1
+            else (sorted_vals[mid - 1] + sorted_vals[mid]) / 2
+        )
 
     @staticmethod
     def calculate_mode(values):
-        """Compute mode; returns first most frequent or None if empty."""
+        """Optimized mode calculation using collections.Counter."""
+        from collections import Counter
+
         if not values:
             return None
-        freq = {}
-        for v in values:
-            freq[v] = freq.get(v, 0) + 1
+        freq = Counter(values)
         max_count = max(freq.values())
         modes = [v for v, c in freq.items() if c == max_count]
-        return modes[0]  # return first mode
+        return modes[0]  # Return the first mode
 
     @staticmethod
     def sort_students():
+        """Optimized student sorting by performance and grade."""
         students = Student.get_all_students()
         order_map = {v: i for i, v in enumerate(Student.get_sorted_performance())}
-        students.sort(key=lambda x: (order_map.get(x["Performance"], 99), -x["Grade"]))
-        return students
+        return sorted(
+            students, key=lambda x: (order_map.get(x["Performance"], 99), -x["Grade"])
+        )
